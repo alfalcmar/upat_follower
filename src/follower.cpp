@@ -161,12 +161,11 @@ bool Follower::prepareTrajectoryCb(upat_follower::PrepareTrajectory::Request &_r
 }
 
 void Follower::trajectoryToFollowCb(const nav_msgs::Path::ConstPtr &_traj_to_follow){
-    std::vector<double> times;
+    generated_times_.clear();
     for(size_t i = 0; i < _traj_to_follow->poses.size();i++){
-        times.push_back(i*time_step_);
+        generated_times_.push_back(i*time_step_);
     }
-    nav_msgs::Path aux_path(*_traj_to_follow);
-    updateTrajectory(aux_path, times);
+    target_path_ = *_traj_to_follow;
 }
 
 void Follower::ualPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &_ual_pose) {
