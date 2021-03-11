@@ -41,6 +41,8 @@ class Follower {
     Follower(int _uav_id, bool _debug = false, double _max_vxy = 1.0, double _max_vz_up = 1.0, double _max_vz_dn = 1.0);
     ~Follower();
 
+    float time_step_ = 0.0;  // uniform time step for trajectory
+
     void pubMsgs();
     geometry_msgs::TwistStamped out_velocity_;
     geometry_msgs::TwistStamped getVelocity();
@@ -56,10 +58,12 @@ class Follower {
    private:
     // Callbacks
     void ualPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &_ual_pose);
+    void trajectoryToFollowCb(const nav_msgs::Path::ConstPtr &_traj_to_follow);
     bool preparePathCb(upat_follower::PreparePath::Request &_req_path, upat_follower::PreparePath::Response &_res_path);
     bool prepareTrajectoryCb(upat_follower::PrepareTrajectory::Request &_req_trajectory, upat_follower::PrepareTrajectory::Response &_res_trajectory);
     bool updatePathCb(upat_follower::UpdatePath::Request &_req_path, upat_follower::UpdatePath::Response &_res_path);
     bool updateTrajectoryCb(upat_follower::UpdateTrajectory::Request &_req_trajectory, upat_follower::UpdateTrajectory::Response &_res_trajectory);
+
     // Methods
     void capMaxVelocities();
     void prepareDebug(double _search_range, int _normal_pos_on_path, int _pos_look_ahead, int _prev_normal);
@@ -72,7 +76,7 @@ class Follower {
     // Node handlers
     ros::NodeHandle nh_, pnh_;
     // Subscribers
-    ros::Subscriber sub_pose_;
+    ros::Subscriber sub_pose_, sub_trajectory_;
     // Publishers
     ros::Publisher pub_output_velocity_, pub_point_look_ahead_, pub_point_normal_, pub_point_search_normal_begin_, pub_point_search_normal_end_;
     // Services

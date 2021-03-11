@@ -27,8 +27,11 @@ Follower::Follower() : nh_(), pnh_("~") {
     pnh_.getParam("uav_id", uav_id_);
     pnh_.getParam("ns_prefix", ns_prefix_);
     pnh_.getParam("debug", debug_);
+    pnh_.getParam("time_step", time_step_);
     // Subscriptions
     sub_pose_ = nh_.subscribe("/" + ns_prefix_ + std::to_string(uav_id_) + "/ual/pose", 0, &Follower::ualPoseCallback, this);
+    sub_trajectory_ = pnh_.subscribe("trajectory_to_follow", 0, &Follower::trajectoryToFollowCb, this);
+
     // Publishers
     pub_output_velocity_ = nh_.advertise<geometry_msgs::TwistStamped>("/" + ns_prefix_ + std::to_string(uav_id_) + "/upat_follower/follower/output_vel", 1000);
     // Services
@@ -78,6 +81,8 @@ bool Follower::updatePathCb(upat_follower::UpdatePath::Request &_req_path, upat_
     updatePath(_req_path.new_target_path);
     return true;
 }
+
+
 
 bool Follower::updateTrajectoryCb(upat_follower::UpdateTrajectory::Request &_req_trajectory, upat_follower::UpdateTrajectory::Response &_res_trajectory) {
     std::vector<double> times;
@@ -153,6 +158,15 @@ bool Follower::prepareTrajectoryCb(upat_follower::PrepareTrajectory::Request &_r
     _res_trajectory.generated_path = prepareTrajectory(_req_trajectory.init_path, vec_times);
 
     return true;
+}
+
+void Follower::trajectoryToFollowCb(const nav_msgs::Path::ConstPtr &_traj_to_follow){
+    std::vector<double> times;
+    for(size_t i = 0; i < _traj_to_follow->poses.size();i++){
+        times.push_back(i*time_step_);
+    }
+    nav_msgs::Path aux_path(*_traj_to_follow);
+    updateTrajectory(aux_path, times);
 }
 
 void Follower::ualPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &_ual_pose) {
