@@ -32,6 +32,9 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "geometry_msgs/TwistStamped.h"
 #include "nav_msgs/Path.h"
+#include <tf2/utils.h>     // to convert quaternion to roll-pitch-yaw
+#include <handy_tools/pid_controller.h>
+#include <memory>
 
 namespace upat_follower {
 
@@ -56,6 +59,10 @@ class Follower {
     std::vector<double> generated_times_, init_times_;
 
    private:
+    float rate = 0.0;
+    const float YAW_PID_P = 0.4;
+    const float YAW_PID_I = 0.02;
+    const float YAW_PI_D = 0.0;
     // Callbacks
     void ualPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &_ual_pose);
     void trajectoryToFollowCb(const nav_msgs::Path::ConstPtr &_traj_to_follow);
@@ -65,6 +72,7 @@ class Follower {
     bool updateTrajectoryCb(upat_follower::UpdateTrajectory::Request &_req_trajectory, upat_follower::UpdateTrajectory::Response &_res_trajectory);
 
     // Methods
+    float calculateYawDiff(float _desired_yaw, float _current_yaw);
     void capMaxVelocities();
     void prepareDebug(double _search_range, int _normal_pos_on_path, int _pos_look_ahead, int _prev_normal);
     double changeLookAhead(int _pos_on_path);
@@ -81,6 +89,8 @@ class Follower {
     ros::Publisher pub_output_velocity_, pub_point_look_ahead_, pub_point_normal_, pub_point_search_normal_begin_, pub_point_search_normal_end_;
     // Services
     ros::ServiceServer server_prepare_path_, server_prepare_trajectory_;
+
+    std::unique_ptr<grvc::utils::PidController> yaw_pid;
     // Variables
     double vxy_, vz_up_, vz_dn_;
     double smallest_max_velocity_;

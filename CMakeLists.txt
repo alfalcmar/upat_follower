@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(upat_follower)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++17)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   uav_abstraction_layer
   ual_backend_mavros
   ecl_geometry
+  handy_tools
 )
 find_package(Eigen3 REQUIRED)
 find_package(rostest REQUIRED)

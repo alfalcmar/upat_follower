@@ -28,6 +28,8 @@ Follower::Follower() : nh_(), pnh_("~") {
     pnh_.getParam("ns_prefix", ns_prefix_);
     pnh_.getParam("debug", debug_);
     pnh_.getParam("time_step", time_step_);
+    pnh_.getParam("pub_rate", rate);
+
     // Subscriptions
     sub_pose_ = nh_.subscribe("/" + ns_prefix_ + std::to_string(uav_id_) + "/ual/pose", 0, &Follower::ualPoseCallback, this);
     sub_trajectory_ = pnh_.subscribe("trajectory_to_follow", 0, &Follower::trajectoryToFollowCb, this);
@@ -45,6 +47,9 @@ Follower::Follower() : nh_(), pnh_("~") {
         pub_point_search_normal_end_ = nh_.advertise<geometry_msgs::PointStamped>("/" + ns_prefix_ + std::to_string(uav_id_) + "/upat_follower/follower/debug_point_search_end", 1000);
     }
     capMaxVelocities();
+    yaw_pid = std::make_unique<grvc::utils::PidController>("yaw", YAW_PID_P, YAW_PID_I, YAW_PID_P);
+
+
 }
 
 Follower::Follower(int _uav_id, bool _debug, double _max_vxy, double _max_vz_up, double _max_vz_dn) {
@@ -326,6 +331,21 @@ geometry_msgs::TwistStamped Follower::calculateVelocity(Eigen::Vector3f &_curren
     }
     out_vel.header.frame_id = target_path_.header.frame_id;
 
+    tf2::Quaternion desired_q(target_path_.poses.at(_pos_look_ahead).pose.orientation.x,
+                       target_path_.poses.at(_pos_look_ahead).pose.orientation.y,
+                       target_path_.poses.at(_pos_look_ahead).pose.orientation.z,
+                       target_path_.poses.at(_pos_look_ahead).pose.orientation.w);
+    tf2::Quaternion current_q(ual_pose_.pose.orientation.x,
+                              ual_pose_.pose.orientation.y,
+                              ual_pose_.pose.orientation.z,
+                              ual_pose_.pose.orientation.w);
+        
+    float current_yaw = tf2::getYaw(current_q);
+    float desired_yaw = tf2::getYaw(desired_q);
+    float yaw_diff = calculateYawDiff(desired_yaw, current_yaw);
+    float sampling_period = 1/rate;
+    out_vel.twist.angular.z = yaw_pid->control_signal(yaw_diff, sampling_period);
+
     return out_vel;
 }
 
@@ -395,6 +415,14 @@ void Follower::pubMsgs() {
         pub_point_search_normal_begin_.publish(point_search_normal_begin_);
         pub_point_search_normal_end_.publish(point_search_normal_end_);
     }
+}
+
+float Follower::calculateYawDiff(float _desired_yaw, float _current_yaw) {
+    float yaw_diff = _desired_yaw - _current_yaw;
+    while (yaw_diff < -M_PI) yaw_diff += 2*M_PI;
+    while (yaw_diff >  M_PI) yaw_diff -= 2*M_PI;
+
+    return yaw_diff;
 }
 
 geometry_msgs::TwistStamped Follower::getVelocity() {
