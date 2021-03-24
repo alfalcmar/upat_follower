@@ -35,7 +35,7 @@ Follower::Follower() : nh_(), pnh_("~") {
     sub_trajectory_ = pnh_.subscribe("trajectory_to_follow", 0, &Follower::trajectoryToFollowCb, this);
 
     // Publishers
-    pub_output_velocity_ = nh_.advertise<geometry_msgs::TwistStamped>("/" + ns_prefix_ + std::to_string(uav_id_) + "/upat_follower/follower/output_vel", 1000);
+    pub_output_velocity_ = nh_.advertise<geometry_msgs::TwistStamped>("/" + ns_prefix_ + std::to_string(uav_id_) + "/ual/velocity", 1);
     // Services
     server_prepare_path_ = nh_.advertiseService("/" + ns_prefix_ + std::to_string(uav_id_) + "/upat_follower/follower/prepare_path", &Follower::preparePathCb, this);
     server_prepare_trajectory_ = nh_.advertiseService("/" + ns_prefix_ + std::to_string(uav_id_) + "/upat_follower/follower/prepare_trajectory", &Follower::prepareTrajectoryCb, this);
