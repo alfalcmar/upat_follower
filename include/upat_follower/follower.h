@@ -59,6 +59,7 @@ class Follower {
     std::vector<double> generated_times_, init_times_;
 
    private:
+    double start_time;
     float rate = 0.0;
     const float YAW_PID_P = 0.4;
     const float YAW_PID_I = 0.02;

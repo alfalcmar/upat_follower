@@ -30,12 +30,17 @@ Follower::Follower() : nh_(), pnh_("~") {
     pnh_.getParam("time_step", time_step_);
     pnh_.getParam("pub_rate", rate);
 
+    vxy_ = 4.0;
+    vz_up_ = 4.0;
+    vz_dn_ = 4.0;
+    follower_mode_ = 1;
+    debug_ = true;
     // Subscriptions
     sub_pose_ = nh_.subscribe("/" + ns_prefix_ + std::to_string(uav_id_) + "/ual/pose", 0, &Follower::ualPoseCallback, this);
     sub_trajectory_ = pnh_.subscribe("trajectory_to_follow", 0, &Follower::trajectoryToFollowCb, this);
 
     // Publishers
-    pub_output_velocity_ = nh_.advertise<geometry_msgs::TwistStamped>("/" + ns_prefix_ + std::to_string(uav_id_) + "/ual/velocity", 1);
+    pub_output_velocity_ = nh_.advertise<geometry_msgs::TwistStamped>("/" + ns_prefix_ + std::to_string(uav_id_) + "/ual/set_velocity", 1);
     // Services
     server_prepare_path_ = nh_.advertiseService("/" + ns_prefix_ + std::to_string(uav_id_) + "/upat_follower/follower/prepare_path", &Follower::preparePathCb, this);
     server_prepare_trajectory_ = nh_.advertiseService("/" + ns_prefix_ + std::to_string(uav_id_) + "/upat_follower/follower/prepare_trajectory", &Follower::prepareTrajectoryCb, this);
@@ -53,6 +58,7 @@ Follower::Follower() : nh_(), pnh_("~") {
 }
 
 Follower::Follower(int _uav_id, bool _debug, double _max_vxy, double _max_vz_up, double _max_vz_dn) {
+    
     debug_ = debug_class_ = _debug;
     uav_id_ = _uav_id;
     vxy_ = _max_vxy;
@@ -166,6 +172,7 @@ bool Follower::prepareTrajectoryCb(upat_follower::PrepareTrajectory::Request &_r
 }
 
 void Follower::trajectoryToFollowCb(const nav_msgs::Path::ConstPtr &_traj_to_follow){
+    start_time = ros::Time::now().toSec();
     generated_times_.clear();
     for(size_t i = 0; i < _traj_to_follow->poses.size();i++){
         generated_times_.push_back(i*time_step_);
@@ -427,6 +434,7 @@ float Follower::calculateYawDiff(float _desired_yaw, float _current_yaw) {
 
 geometry_msgs::TwistStamped Follower::getVelocity() {
     if (target_path_.poses.size() > 1) {
+        actual_time_ = ros::Time::now().toSec() - start_time;
         Eigen::Vector3f current_point, target_path0_point;
         current_point = Eigen::Vector3f(ual_pose_.pose.position.x, ual_pose_.pose.position.y, ual_pose_.pose.position.z);
         target_path0_point = Eigen::Vector3f(target_path_.poses.at(0).pose.position.x, target_path_.poses.at(0).pose.position.y, target_path_.poses.at(0).pose.position.z);
